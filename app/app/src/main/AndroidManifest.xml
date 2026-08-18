@@ -4,16 +4,14 @@
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@android:drawable/sym_def_app_icon"
         android:label="Pixel 8 Island"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
+        <!-- شاشة الإعدادات الرئيسية -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -23,7 +21,7 @@
             </intent-filter>
         </activity>
 
-        <!-- خدمة الجزيرة عبر إمكانية الوصول -->
+        <!-- خدمة الجزيرة فوق الشاشة -->
         <service
             android:name=".DynamicIslandService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -33,10 +31,9 @@
             </intent-filter>
         </service>
 
-        <!-- خدمة رصد الإشعارات لعرضها داخل الجزيرة -->
+        <!-- خدمة التقاط وعرض الإشعارات داخل الجزيرة -->
         <service
             android:name=".NotificationService"
-            android:label="Pixel 8 Island Notifications"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="true">
             <intent-filter>
