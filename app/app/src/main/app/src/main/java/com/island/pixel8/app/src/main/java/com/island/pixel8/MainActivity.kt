@@ -1,41 +1,77 @@
-package com.island.pixel8
+package com.pixel8.dynamicisland;
 
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.provider.Settings
-import android.widget.Button
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.provider.Settings;
+import android.widget.Button;
+import android.widget.SeekBar;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
 
-class MainActivity : AppCompatActivity() {
+public class MainActivity extends AppCompatActivity {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        
-        // واجهة برمجية سريعة ومباشرة بدون الحاجة لملفات xml
-        val button = Button(this).apply {
-            text = "تفعيل جزيرة Pixel 8 الديناميكية"
-            textSize = 18f
-            setOnClickListener {
-                checkPermissionAndStart()
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        Button btnAccessibility = findViewById(R.id.btnAccessibility);
+        Button btnNotification = findViewById(R.id.btnNotification);
+        Button btnTest = findViewById(R.id.btnTest);
+        SeekBar seekY = findViewById(R.id.seekY);
+        SeekBar seekWidth = findViewById(R.id.seekWidth);
+        TextView txtY = findViewById(R.id.txtY);
+        TextView txtWidth = findViewById(R.id.txtWidth);
+
+        SharedPreferences prefs = getSharedPreferences("island_prefs", MODE_PRIVATE);
+
+        // ضبط إزاحة الكاميرا وموقع الجزيرة
+        seekY.setProgress(prefs.getInt("island_y", 12));
+        txtY.setText("الموضع من الأعلى (Y): " + seekY.getProgress() + "px");
+
+        seekY.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                txtY.setText("الموضع من الأعلى (Y): " + progress + "px");
+                prefs.edit().putInt("island_y", progress).apply();
             }
-        }
-        setContentView(button)
-    }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
 
-    private fun checkPermissionAndStart() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "يرجى تفعيل إذن الظهور في المقدمة للتطبيق", Toast.LENGTH_LONG).show()
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivity(intent)
-        } else {
-            val intent = Intent(this, IslandService::class.java)
-            startService(intent)
-        }
+        // ضبط عرض الجزيرة
+        seekWidth.setProgress(prefs.getInt("island_width", 260));
+        txtWidth.setText("عرض الجزيرة في وضع السكون: " + seekWidth.getProgress() + "px");
+
+        seekWidth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                txtWidth.setText("عرض الجزيرة في وضع السكون: " + progress + "px");
+                prefs.edit().putInt("island_width", progress).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        // أزرار الصلاحيات
+        btnAccessibility.setOnClickListener(v -> {
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+            Toast.makeText(this, "فعّل Pixel 8 Island من القائمة", Toast.LENGTH_SHORT).show();
+        });
+
+        btnNotification.setOnClickListener(v -> {
+            startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+            Toast.makeText(this, "امنح إذن الإشعارات للتطبيق", Toast.LENGTH_SHORT).show();
+        });
+
+        btnTest.setOnClickListener(v -> {
+            Intent intent = new Intent(NotificationService.ACTION_NEW_NOTIFICATION);
+            intent.putExtra("title", "💬 رسالة جديدة");
+            intent.putExtra("text", "مرحباً! إشعارات الجزيرة تعمل بامتياز على Pixel 8 🔥");
+            sendBroadcast(intent);
+        });
     }
 }
