@@ -7,10 +7,12 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,111 +28,184 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("island_prefs", MODE_PRIVATE);
 
         ScrollView scrollView = new ScrollView(this);
-        scrollView.setBackgroundColor(Color.parseColor("#121212"));
+        scrollView.setBackgroundColor(Color.parseColor("#0F0F0F"));
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 60, 50, 60);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(40, 50, 40, 50);
 
-        // عنوان التطبيق
+        // ترويسة أنيقة
         TextView title = new TextView(this);
-        title.setText("Pixel 8 Dynamic Island 🏝️");
+        title.setText("Pixel 8 Dynamic Island");
         title.setTextColor(Color.WHITE);
         title.setTextSize(22);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
-        layout.addView(title);
+        root.addView(title);
 
         TextView subTitle = new TextView(this);
-        subTitle.setText("لوحة التحكم وتخصيص الجزيرة والإشعارات");
+        subTitle.setText("لوحة التحكم: الشاحن • الموسيقى • الإشعارات");
         subTitle.setTextColor(Color.parseColor("#888888"));
-        subTitle.setTextSize(13);
-        subTitle.setPadding(0, 8, 0, 40);
-        layout.addView(subTitle);
+        subTitle.setTextSize(12);
+        subTitle.setPadding(0, 4, 0, 25);
+        root.addView(subTitle);
 
-        // 1. زر تفعيل الجزيرة
-        Button btnAccess = createStyledButton("1. تفعيل الجزيرة (Accessibility)", "#1E88E5");
+        // 1. بطاقة الأذونات
+        LinearLayout permCard = createCard();
+        permCard.addView(createCardTitle("🛡️ أذونات التشغيل"));
+        Button btnAccess = createCleanButton("1. تفعيل الجزيرة (Accessibility)", "#1E88E5");
         btnAccess.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
-        layout.addView(btnAccess);
+        permCard.addView(btnAccess);
 
-        // 2. زر تفعيل الإشعارات
-        Button btnNotif = createStyledButton("2. تفعيل قراءة الإشعارات", "#43A047");
+        Button btnNotif = createCleanButton("2. إذن الإشعارات والموسيقى (Notifications)", "#2E7D32");
         btnNotif.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
-        layout.addView(btnNotif);
+        permCard.addView(btnNotif);
+        root.addView(permCard);
 
-        // تعديل موضع Y (الارتفاع)
+        // 2. بطاقة إعدادات الشاحن والبطارية
+        LinearLayout batteryCard = createCard();
+        batteryCard.addView(createCardTitle("⚡ إعدادات الشاحن والبطارية"));
+        batteryCard.addView(createSwitchRow("أنيميشن توصيل الشاحن السريع", "enable_charging_anim", true, prefs));
+        batteryCard.addView(createSwitchRow("تنبيه اكتمال الشحن (100%)", "enable_battery_full", true, prefs));
+        batteryCard.addView(createSwitchRow("تنبيه انخفاض البطارية (20%)", "enable_battery_low", true, prefs));
+        root.addView(batteryCard);
+
+        // 3. بطاقة إعدادات الموسيقى والوسائط
+        LinearLayout musicCard = createCard();
+        musicCard.addView(createCardTitle("🎵 إعدادات مشغل الموسيقى"));
+        musicCard.addView(createSwitchRow("إظهار شريط الموسيقى عند التشغيل", "enable_music", true, prefs));
+        musicCard.addView(createSwitchRow("موجة صوتية متحركة (Waveform)", "enable_music_wave", true, prefs));
+        musicCard.addView(createSwitchRow("عرض اسم الفنان والأغنية", "enable_music_info", true, prefs));
+        root.addView(musicCard);
+
+        // 4. بطاقة محاذاة الكاميرا
+        LinearLayout positionCard = createCard();
+        positionCard.addView(createCardTitle("📐 أبعاد وموضع الكاميرا"));
+
         int currentY = prefs.getInt("island_y", 12);
         TextView txtY = new TextView(this);
-        txtY.setText("الموضع من الأعلى (Y): " + currentY + " px");
-        txtY.setTextColor(Color.LTGRAY);
-        txtY.setPadding(0, 30, 0, 10);
-        layout.addView(txtY);
+        txtY.setText("المسافة من الأعلى: " + currentY + " px");
+        txtY.setTextColor(Color.parseColor("#AAAAAA"));
+        txtY.setTextSize(12);
+        txtY.setPadding(0, 5, 0, 5);
+        positionCard.addView(txtY);
 
         SeekBar seekY = new SeekBar(this);
-        seekY.setMax(80);
+        seekY.setMax(60);
         seekY.setProgress(currentY);
         seekY.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                txtY.setText("الموضع من الأعلى (Y): " + progress + " px");
+                txtY.setText("المسافة من الأعلى: " + progress + " px");
                 prefs.edit().putInt("island_y", progress).apply();
                 sendLiveUpdate(progress, prefs.getInt("island_width", 280));
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-        layout.addView(seekY);
+        positionCard.addView(seekY);
 
-        // تعديل العرض
         int currentW = prefs.getInt("island_width", 280);
         TextView txtW = new TextView(this);
-        txtW.setText("عرض الجزيرة في وضع السكون: " + currentW + " px");
-        txtW.setTextColor(Color.LTGRAY);
-        txtW.setPadding(0, 30, 0, 10);
-        layout.addView(txtW);
+        txtW.setText("عرض الكبسولة في وضع السكون: " + currentW + " px");
+        txtW.setTextColor(Color.parseColor("#AAAAAA"));
+        txtW.setTextSize(12);
+        txtW.setPadding(0, 15, 0, 5);
+        positionCard.addView(txtW);
 
         SeekBar seekW = new SeekBar(this);
-        seekW.setMax(450);
+        seekW.setMin(180);
+        seekW.setMax(380);
         seekW.setProgress(currentW);
         seekW.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                txtW.setText("عرض الجزيرة في وضع السكون: " + progress + " px");
+                txtW.setText("عرض الكبسولة في وضع السكون: " + progress + " px");
                 prefs.edit().putInt("island_width", progress).apply();
                 sendLiveUpdate(prefs.getInt("island_y", 12), progress);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-        layout.addView(seekW);
+        positionCard.addView(seekW);
 
-        // 3. زر اختبار الإشعار
-        Button btnTest = createStyledButton("✨ تجربة إشعار تفاعلي", "#333333");
+        root.addView(positionCard);
+
+        // زر التجربة
+        Button btnTest = createCleanButton("✨ تجربة إشعار تفاعلي", "#242426");
         btnTest.setTextColor(Color.parseColor("#00E676"));
         btnTest.setOnClickListener(v -> {
             Intent intent = new Intent(NotificationService.ACTION_NEW_NOTIFICATION);
-            intent.putExtra("title", "واتساب");
-            intent.putExtra("text", "مرحباً! إشعارات الجزيرة تعمل بنجاح 🚀");
+            intent.putExtra("title", "💬 رسالة جديدة");
+            intent.putExtra("text", "إشعارات الجزيرة تعمل بامتياز على Pixel 8 🔥");
             sendBroadcast(intent);
-            Toast.makeText(this, "تم إرسال إشعار للجزيرة!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "تم إرسال إشعار تجريبي!", Toast.LENGTH_SHORT).show();
         });
-        layout.addView(btnTest);
+        root.addView(btnTest);
 
-        scrollView.addView(layout);
+        scrollView.addView(root);
         setContentView(scrollView);
     }
 
-    private Button createStyledButton(String text, String colorHex) {
+    private LinearLayout createCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(35, 28, 35, 28);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#1C1C1E"));
+        bg.setCornerRadius(26);
+        card.setBackground(bg);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        p.setMargins(0, 0, 0, 20);
+        card.setLayoutParams(p);
+        return card;
+    }
+
+    private TextView createCardTitle(String text) {
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextColor(Color.WHITE);
+        tv.setTextSize(14);
+        tv.setTypeface(null, android.graphics.Typeface.BOLD);
+        tv.setPadding(0, 0, 0, 12);
+        return tv;
+    }
+
+    private View createSwitchRow(String title, String prefKey, boolean defVal, SharedPreferences prefs) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, 8, 0, 8);
+
+        TextView label = new TextView(this);
+        label.setText(title);
+        label.setTextColor(Color.parseColor("#CCCCCC"));
+        label.setTextSize(13);
+        label.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        Switch sw = new Switch(this);
+        sw.setChecked(prefs.getBoolean(prefKey, defVal));
+        sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean(prefKey, isChecked).apply();
+        });
+
+        row.addView(label);
+        row.addView(sw);
+        return row;
+    }
+
+    private Button createCleanButton(String text, String colorHex) {
         Button b = new Button(this);
         b.setText(text);
         b.setTextColor(Color.WHITE);
-        b.setTextSize(14);
+        b.setTextSize(12);
         GradientDrawable d = new GradientDrawable();
         d.setColor(Color.parseColor(colorHex));
-        d.setCornerRadius(30);
+        d.setCornerRadius(18);
         b.setBackground(d);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 140);
-        p.setMargins(0, 15, 0, 15);
+                LinearLayout.LayoutParams.MATCH_PARENT, 115);
+        p.setMargins(0, 4, 0, 8);
         b.setLayoutParams(p);
         return b;
     }
