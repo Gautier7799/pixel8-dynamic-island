@@ -1,102 +1,100 @@
 package com.pixel8.dynamicisland;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.Service;
-import android.content.Context;
-import android.content.Intent;
+import android.accessibilityservice.AccessibilityService;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
-import android.os.IBinder;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityEvent;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import androidx.core.app.NotificationCompat;
+import android.widget.Toast;
 
-public class DynamicIslandService extends Service {
+public class DynamicIslandService extends AccessibilityService {
 
     private WindowManager windowManager;
-    private View islandView;
+    private View islandContainer;
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        createNotificationChannel();
-        startForeground(1, createNotification());
+    public void onServiceConnected() {
+        super.onServiceConnected();
         showIsland();
     }
 
+    @Override
+    public void onAccessibilityEvent(AccessibilityEvent event) {}
+
+    @Override
+    public void onInterrupt() {}
+
     private void showIsland() {
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        if (islandContainer != null) return;
 
-        // إنشاء شكل الجزيرة الديناميكية الأسود المقوس المخصص لثقب كاميرا Pixel 8
-        islandView = new TextView(this);
-        ((TextView) islandView).setText("● Pixel 8 Island");
-        ((TextView) islandView).setTextColor(Color.WHITE);
-        ((TextView) islandView).setTextSize(12);
-        ((TextView) islandView).setGravity(Gravity.CENTER);
+        try {
+            windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(Color.BLACK);
-        shape.setCornerRadius(60); // زوايا دائرية كاملة
-        islandView.setBackground(shape);
+            LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.HORIZONTAL);
+            layout.setGravity(Gravity.CENTER);
 
-        int layoutType;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            layoutType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
-        } else {
-            layoutType = WindowManager.LayoutParams.TYPE_PHONE;
-        }
+            // شكل كبسولة سوداء مقوسة لـ Pixel 8
+            GradientDrawable shape = new GradientDrawable();
+            shape.setColor(Color.BLACK);
+            shape.setCornerRadius(80f);
+            shape.setStroke(2, Color.parseColor("#333333"));
+            layout.setBackground(shape);
 
-        // إحداثيات ومقاسات الجزيرة حول الكاميرا
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                320, // العرض
-                100, // الارتفاع
-                layoutType,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                PixelFormat.TRANSLUCENT
-        );
+            TextView tv = new TextView(this);
+            tv.setText("🏝️ Pixel 8 Island");
+            tv.setTextColor(Color.WHITE);
+            tv.setTextSize(13);
+            tv.setGravity(Gravity.CENTER);
+            tv.setPadding(30, 10, 30, 10);
+            layout.addView(tv);
 
-        params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-        params.y = 20; // المسافة من أعلى الشاشة لتناسب ثقب الكاميرا
+            islandContainer = layout;
 
-        windowManager.addView(islandView, params);
-    }
+            islandContainer.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Toast.makeText(DynamicIslandService.this, "الجزيرة نشطة وتتفاعل معك! ✨", Toast.LENGTH_SHORT).show();
+                }
+            });
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    "island_channel",
-                    "Dynamic Island Service",
-                    NotificationManager.IMPORTANCE_LOW
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                    460,
+                    120,
+                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    PixelFormat.TRANSLUCENT
             );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) manager.createNotificationChannel(channel);
-        }
-    }
 
-    private Notification createNotification() {
-        return new NotificationCompat.Builder(this, "island_channel")
-                .setContentTitle("Dynamic Island نشطة")
-                .setContentText("الجزيرة التفاعلية تعمل الآن حول كاميرا Pixel 8")
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .build();
+            params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+            params.y = 10;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            }
+
+            windowManager.addView(islandContainer, params);
+            Toast.makeText(this, "تم إطلاق الجزيرة التفاعلية بنجاح! 🚀", Toast.LENGTH_LONG).show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (islandView != null && windowManager != null) {
-            windowManager.removeView(islandView);
+        if (islandContainer != null && windowManager != null) {
+            windowManager.removeView(islandContainer);
+            islandContainer = null;
         }
     }
 }
