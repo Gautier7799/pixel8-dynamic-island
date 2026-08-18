@@ -1,38 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp"
-    android:background="#121212">
+    android:background="#121212"
+    android:padding="20dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Pixel 8 Dynamic Island"
-        android:textColor="#FFFFFF"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="اضغط على الزر أدناه لتفعيل إذن الظهور فوق الشاشة وتشغيل الجزيرة التفاعلية."
-        android:textColor="#AAAAAA"
-        android:textSize="14sp"
-        android:gravity="center"
-        android:layout_marginBottom="32dp" />
-
-    <Button
-        android:id="@+id/btnStartIsland"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="تفعيل وتشغيل الجزيرة"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:backgroundTint="#2196F3"
-        android:textColor="#FFFFFF" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-</LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pixel 8 Dynamic Island 🏝️"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="لوحة تحكم الجزيرة التفاعلية وتخصيص الأبعاد والإشعارات"
+            android:textColor="#888888"
+            android:textSize="13sp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- بطاقة الصلاحيات -->
+        <Button
+            android:id="@+id/btnAccessibility"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="1. تفعيل الجزيرة (Accessibility)"
+            android:backgroundTint="#1E88E5"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btnNotification"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="2. تفعيل قراءة الإشعارات (Notifications)"
+            android:backgroundTint="#43A047"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="24dp" />
+
+        <!-- تخصيص الأبعاد والموقع حول الكاميرا -->
+        <TextView
+            android:id="@+id/txtY"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="الموضع من الأعلى (Y): 12px"
+            android:textColor="#CCCCCC"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/seekY"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:id="@+id/txtWidth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="عرض الجزيرة في وضع السكون: 260px"
+            android:textColor="#CCCCCC"
+            android:textSize="14sp" />
+
+        <SeekBar
+            android:id="@+id/seekWidth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:min="150"
+            android:max="450"
+            android:layout_marginBottom="28dp" />
+
+        <!-- زر اختبار الإشعار والتوسعة -->
+        <Button
+            android:id="@+id/btnTest"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="✨ تجربة إشعار تفاعلي"
+            android:backgroundTint="#333333"
+            android:textColor="#00E676" />
+
+    </LinearLayout>
+</ScrollView>
