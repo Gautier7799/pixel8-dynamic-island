@@ -1,17 +1,10 @@
 package com.island.pixel8
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.Service
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
-import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
@@ -19,129 +12,93 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 
 class IslandService : Service() {
 
-    private lateinit var windowManager: WindowManager
-    private lateinit var islandView: LinearLayout
-    private lateinit var islandText: TextView
-    private lateinit var batteryReceiver: BroadcastReceiver
-    private var isExpanded = false
+    private var windowManager: WindowManager? = null
+    private var islandContainer: LinearLayout? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onCreate() {
-        super.onCreate()
-        startForegroundServiceNotification()
-
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-
-        // إنشاء تصميم الجزيرة الديناميكية برمجياً حول ثقب كاميرا Pixel 8
-        islandView = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(36, 12, 36, 12)
-            
-            // خلفية سوداء بحواف دائرية كاملة (Pill Shape)
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#000000"))
-                cornerRadius = 100f
-            }
-        }
-
-        islandText = TextView(this).apply {
-            text = "Pixel 8 Island"
-            setTextColor(Color.WHITE)
-            textSize = 12f
-        }
-        islandView.addView(islandText)
-
-        // إعدادات تموضع الجزيرة فوق شاشة الهاتف
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else
-                WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = 35 // المسافة لأسفل ثقب كاميرا Pixel 8
-        }
-
-        // تفاعل النقر على الجزيرة (توسيع / تصغير)
-        islandView.setOnClickListener {
-            isExpanded = !isExpanded
-            if (isExpanded) {
-                islandView.setPadding(60, 24, 60, 24)
-                islandText.text = "⚡ Dynamic Island جاهزة!"
-            } else {
-                islandView.setPadding(36, 12, 36, 12)
-                islandText.text = "Pixel 8 Island"
-            }
-            windowManager.updateViewLayout(islandView, params)
-        }
-
-        windowManager.addView(islandView, params)
-
-        // الاستماع لحالة الشحن الحقيقية للهاتف
-        batteryReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-                val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                                 status == BatteryManager.BATTERY_STATUS_FULL
-                val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
-
-                if (isCharging) {
-                    islandView.setPadding(55, 20, 55, 20)
-                    islandText.text = "⚡ جاري الشحن: $level%"
-                } else {
-                    islandView.setPadding(36, 12, 36, 12)
-                    islandText.text = "Pixel 8 Island"
-                }
-                windowManager.updateViewLayout(islandView, params)
-            }
-        }
-        registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        createAndShowIsland()
+        return START_STICKY
     }
 
-    private fun startForegroundServiceNotification() {
-        val channelId = "island_service_channel"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Dynamic Island Service",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+    private fun createAndShowIsland() {
+        if (islandContainer != null) {
+            Toast.makeText(this, "الجزيرة معروضة بالفعل!", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, channelId)
-                .setContentTitle("Pixel 8 Dynamic Island")
-                .setContentText("الجزيرة نشطة فوق الشاشة")
-                .setSmallIcon(android.R.drawable.sym_def_app_icon)
-                .build()
-        } else {
-            Notification.Builder(this)
-                .setContentTitle("Pixel 8 Dynamic Island")
-                .setContentText("الجزيرة نشطة فوق الشاشة")
-                .setSmallIcon(android.R.drawable.sym_def_app_icon)
-                .build()
-        }
+        try {
+            windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        startForeground(1001, notification)
+            // حاوية الجزيرة بتصميم كبسولة سوداء مقوسة لـ Pixel 8
+            islandContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                
+                // خلفية سوداء نقية مع زوايا دائرية بالكامل
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#000000"))
+                    cornerRadius = 100f
+                    setStroke(2, Color.parseColor("#333333")) // إطار خفيف لزيادة الوضوح
+                }
+
+                // نص وأيقونة داخل الجزيرة
+                val title = TextView(context).apply {
+                    text = "🏝️ Pixel 8 Island"
+                    setTextColor(Color.WHITE)
+                    textSize = 14f
+                    gravity = Gravity.CENTER
+                }
+                addView(title)
+
+                setOnClickListener {
+                    Toast.makeText(context, "تم النقر على جزيرة Pixel 8! 🔥", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
+
+            // أبعاد ثابتة وصريحة لتظهر الجزيرة بشكل كبسولة واضحة حول الكاميرا
+            val params = WindowManager.LayoutParams(
+                460, // العرض بالبكسل
+                120, // الارتفاع بالبكسل
+                layoutType,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                y = 15 // المسافة لأسفل مباشرة حول كاميرا الشاشة
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+            }
+
+            windowManager?.addView(islandContainer, params)
+            Toast.makeText(this, "تم إظهار الجزيرة بنجاح! 🚀", Toast.LENGTH_LONG).show()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "خطأ في العرض: " + e.message, Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(batteryReceiver)
-        if (::islandView.isInitialized) {
-            windowManager.removeView(islandView)
+        islandContainer?.let {
+            windowManager?.removeView(it)
+            islandContainer = null
         }
     }
 }
