@@ -1,235 +1,219 @@
-package com.pixel8.dynamicisland
+package com.pixel8.dynamicisland;
 
-import android.content.Intent
-import android.content.SharedPreferences
-import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
-import android.os.Bundle
-import android.provider.Settings
-import android.view.Gravity
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.SeekBar
-import android.widget.Switch
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.os.Bundle;
+import android.provider.Settings;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.SeekBar;
+import android.widget.Switch;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
 
-class MainActivity : AppCompatActivity() {
+public class MainActivity extends AppCompatActivity {
 
-    companion object {
-        const val ACTION_UPDATE_CONFIG = "com.pixel8.dynamicisland.UPDATE_CONFIG"
-    }
+    public static final String ACTION_UPDATE_CONFIG = "com.pixel8.dynamicisland.UPDATE_CONFIG";
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-        val prefs = getSharedPreferences("island_prefs", MODE_PRIVATE)
+        SharedPreferences prefs = getSharedPreferences("island_prefs", MODE_PRIVATE);
 
-        val scrollView = ScrollView(this).apply {
-            setBackgroundColor(Color.parseColor("#0F0F0F"))
-        }
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setBackgroundColor(Color.parseColor("#0F0F0F"));
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(40, 50, 40, 50)
-        }
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(40, 50, 40, 50);
 
         // ترويسة أنيقة
-        val title = TextView(this).apply {
-            text = "Pixel 8 Dynamic Island"
-            setTextColor(Color.WHITE)
-            textSize = 22f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-        }
-        root.addView(title)
+        TextView title = new TextView(this);
+        title.setText("Pixel 8 Dynamic Island");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(22);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        root.addView(title);
 
-        val subTitle = TextView(this).apply {
-            text = "تحكم شامل: الشاحن • الموسيقى • الإشعارات"
-            setTextColor(Color.parseColor("#888888"))
-            textSize = 12f
-            setPadding(0, 4, 0, 25)
-        }
-        root.addView(subTitle)
+        TextView subTitle = new TextView(this);
+        subTitle.setText("لوحة التحكم: الشاحن • الموسيقى • الإشعارات");
+        subTitle.setTextColor(Color.parseColor("#888888"));
+        subTitle.setTextSize(12);
+        subTitle.setPadding(0, 4, 0, 25);
+        root.addView(subTitle);
 
         // 1. بطاقة الأذونات
-        val permCard = createCard().apply {
-            addView(createCardTitle("🛡️ أذونات التشغيل"))
-            addView(createCleanButton("1. إذن الظهور فوق الشاشة (Accessibility)", "#1E88E5").apply {
-                setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-            })
-            addView(createCleanButton("2. إذن قراءة الإشعارات والموسيقى", "#2E7D32").apply {
-                setOnClickListener { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
-            })
-        }
-        root.addView(permCard)
+        LinearLayout permCard = createCard();
+        permCard.addView(createCardTitle("🛡️ أذونات التشغيل"));
+        Button btnAccess = createCleanButton("1. تفعيل الجزيرة (Accessibility)", "#1E88E5");
+        btnAccess.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        permCard.addView(btnAccess);
 
-        // 2. بطاقة الشاحن والبطارية
-        val batteryCard = createCard().apply {
-            addView(createCardTitle("⚡ إعدادات الشاحن والبطارية"))
-            addView(createSwitchRow("أنيميشن توصيل الشاحن السريع", "enable_charging", true, prefs))
-            addView(createSwitchRow("تنبيه اكتمال الشحن (100%)", "enable_full_battery", true, prefs))
-            addView(createSwitchRow("تنبيه انخفاض البطارية (20%)", "enable_low_battery", true, prefs))
-        }
-        root.addView(batteryCard)
+        Button btnNotif = createCleanButton("2. إذن الإشعارات والموسيقى (Notifications)", "#2E7D32");
+        btnNotif.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+        permCard.addView(btnNotif);
+        root.addView(permCard);
 
-        // 3. بطاقة الموسيقى
-        val musicCard = createCard().apply {
-            addView(createCardTitle("🎵 إعدادات مشغل الموسيقى"))
-            addView(createSwitchRow("إظهار شريط الموسيقى عند التشغيل", "enable_music", true, prefs))
-            addView(createSwitchRow("موجة صوتية متحركة (Waveform)", "enable_waveform", true, prefs))
-            addView(createSwitchRow("عرض تفاصيل الأغنية والفنان", "enable_track_info", true, prefs))
-        }
-        root.addView(musicCard)
+        // 2. بطاقة إعدادات الشاحن والبطارية
+        LinearLayout batteryCard = createCard();
+        batteryCard.addView(createCardTitle("⚡ إعدادات الشاحن والبطارية"));
+        batteryCard.addView(createSwitchRow("أنيميشن توصيل الشاحن السريع", "enable_charging_anim", true, prefs));
+        batteryCard.addView(createSwitchRow("تنبيه اكتمال الشحن (100%)", "enable_battery_full", true, prefs));
+        batteryCard.addView(createSwitchRow("تنبيه انخفاض البطارية (20%)", "enable_battery_low", true, prefs));
+        root.addView(batteryCard);
+
+        // 3. بطاقة إعدادات الموسيقى والوسائط
+        LinearLayout musicCard = createCard();
+        musicCard.addView(createCardTitle("🎵 إعدادات مشغل الموسيقى"));
+        musicCard.addView(createSwitchRow("إظهار شريط الموسيقى عند التشغيل", "enable_music", true, prefs));
+        musicCard.addView(createSwitchRow("موجة صوتية متحركة (Waveform)", "enable_music_wave", true, prefs));
+        musicCard.addView(createSwitchRow("عرض اسم الفنان والأغنية", "enable_music_info", true, prefs));
+        root.addView(musicCard);
 
         // 4. بطاقة محاذاة الكاميرا
-        val positionCard = createCard().apply {
-            addView(createCardTitle("📐 أبعاد وموضع الكاميرا"))
+        LinearLayout positionCard = createCard();
+        positionCard.addView(createCardTitle("📐 أبعاد وموضع الكاميرا"));
 
-            val currentY = prefs.getInt("island_y", 12)
-            val txtY = TextView(context).apply {
-                text = "المسافة من الأعلى: $currentY px"
-                setTextColor(Color.parseColor("#AAAAAA"))
-                textSize = 12f
-                setPadding(0, 5, 0, 5)
-            }
-            addView(txtY)
+        int currentY = prefs.getInt("island_y", 12);
+        TextView txtY = new TextView(this);
+        txtY.setText("المسافة من الأعلى: " + currentY + " px");
+        txtY.setTextColor(Color.parseColor("#AAAAAA"));
+        txtY.setTextSize(12);
+        txtY.setPadding(0, 5, 0, 5);
+        positionCard.addView(txtY);
 
-            val seekY = SeekBar(context).apply {
-                max = 60
-                progress = currentY
-                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                        txtY.text = "المسافة من الأعلى: $progress px"
-                        prefs.edit().putInt("island_y", progress).apply()
-                        sendLiveUpdate(progress, prefs.getInt("island_width", 280))
-                    }
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-                })
+        SeekBar seekY = new SeekBar(this);
+        seekY.setMax(60);
+        seekY.setProgress(currentY);
+        seekY.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                txtY.setText("المسافة من الأعلى: " + progress + " px");
+                prefs.edit().putInt("island_y", progress).apply();
+                sendLiveUpdate(progress, prefs.getInt("island_width", 280));
             }
-            addView(seekY)
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        positionCard.addView(seekY);
 
-            val currentW = prefs.getInt("island_width", 280)
-            val txtW = TextView(context).apply {
-                text = "عرض الكبسولة في وضع السكون: $currentW px"
-                setTextColor(Color.parseColor("#AAAAAA"))
-                textSize = 12f
-                setPadding(0, 15, 0, 5)
-            }
-            addView(txtW)
+        int currentW = prefs.getInt("island_width", 280);
+        TextView txtW = new TextView(this);
+        txtW.setText("عرض الكبسولة في وضع السكون: " + currentW + " px");
+        txtW.setTextColor(Color.parseColor("#AAAAAA"));
+        txtW.setTextSize(12);
+        txtW.setPadding(0, 15, 0, 5);
+        positionCard.addView(txtW);
 
-            val seekW = SeekBar(context).apply {
-                min = 180
-                max = 380
-                progress = currentW
-                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                        txtW.text = "عرض الكبسولة في وضع السكون: $progress px"
-                        prefs.edit().putInt("island_width", progress).apply()
-                        sendLiveUpdate(prefs.getInt("island_y", 12), progress)
-                    }
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-                })
+        SeekBar seekW = new SeekBar(this);
+        seekW.setMin(180);
+        seekW.setMax(380);
+        seekW.setProgress(currentW);
+        seekW.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                txtW.setText("عرض الكبسولة في وضع السكون: " + progress + " px");
+                prefs.edit().putInt("island_width", progress).apply();
+                sendLiveUpdate(prefs.getInt("island_y", 12), progress);
             }
-            addView(seekW)
-        }
-        root.addView(positionCard)
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        positionCard.addView(seekW);
+
+        root.addView(positionCard);
 
         // زر التجربة
-        val btnTest = createCleanButton("✨ تجربة إشعار تفاعلي", "#242426").apply {
-            setTextColor(Color.parseColor("#00E676"))
-            setOnClickListener {
-                val intent = Intent(NotificationService.ACTION_NEW_NOTIFICATION).apply {
-                    putExtra("title", "رسالة جديدة")
-                    putExtra("text", "إشعارات الجزيرة تعمل بامتياز على Pixel 8 🔥")
-                }
-                sendBroadcast(intent)
-                Toast.makeText(this@MainActivity, "تم إرسال إشعار تجريبي!", Toast.LENGTH_SHORT).show()
-            }
-        }
-        root.addView(btnTest)
+        Button btnTest = createCleanButton("✨ تجربة إشعار تفاعلي", "#242426");
+        btnTest.setTextColor(Color.parseColor("#00E676"));
+        btnTest.setOnClickListener(v -> {
+            Intent intent = new Intent(NotificationService.ACTION_NEW_NOTIFICATION);
+            intent.putExtra("title", "💬 رسالة جديدة");
+            intent.putExtra("text", "إشعارات الجزيرة تعمل بامتياز على Pixel 8 🔥");
+            sendBroadcast(intent);
+            Toast.makeText(this, "تم إرسال إشعار تجريبي!", Toast.LENGTH_SHORT).show();
+        });
+        root.addView(btnTest);
 
-        scrollView.addView(root)
-        setContentView(scrollView)
+        scrollView.addView(root);
+        setContentView(scrollView);
     }
 
-    private fun createCard(): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(35, 28, 35, 28)
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#1C1C1E"))
-                cornerRadius = 26f
-            }
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, 20)
-            }
-        }
+    private LinearLayout createCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(35, 28, 35, 28);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#1C1C1E"));
+        bg.setCornerRadius(26);
+        card.setBackground(bg);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        p.setMargins(0, 0, 0, 20);
+        card.setLayoutParams(p);
+        return card;
     }
 
-    private fun createCardTitle(text: String): TextView {
-        return TextView(this).apply {
-            this.text = text
-            setTextColor(Color.WHITE)
-            textSize = 14f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setPadding(0, 0, 0, 12)
-        }
+    private TextView createCardTitle(String text) {
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextColor(Color.WHITE);
+        tv.setTextSize(14);
+        tv.setTypeface(null, android.graphics.Typeface.BOLD);
+        tv.setPadding(0, 0, 0, 12);
+        return tv;
     }
 
-    private fun createSwitchRow(title: String, prefKey: String, defVal: Boolean, prefs: SharedPreferences): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 8, 0, 8)
+    private View createSwitchRow(String title, String prefKey, boolean defVal, SharedPreferences prefs) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, 8, 0, 8);
 
-            val label = TextView(context).apply {
-                text = title
-                setTextColor(Color.parseColor("#CCCCCC"))
-                textSize = 13f
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
+        TextView label = new TextView(this);
+        label.setText(title);
+        label.setTextColor(Color.parseColor("#CCCCCC"));
+        label.setTextSize(13);
+        label.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            val sw = Switch(context).apply {
-                isChecked = prefs.getBoolean(prefKey, defVal)
-                setOnCheckedChangeListener { _, isChecked ->
-                    prefs.edit().putBoolean(prefKey, isChecked).apply()
-                }
-            }
+        Switch sw = new Switch(this);
+        sw.setChecked(prefs.getBoolean(prefKey, defVal));
+        sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean(prefKey, isChecked).apply();
+        });
 
-            addView(label)
-            addView(sw)
-        }
+        row.addView(label);
+        row.addView(sw);
+        return row;
     }
 
-    private fun createCleanButton(text: String, colorHex: String): Button {
-        return Button(this).apply {
-            this.text = text
-            setTextColor(Color.WHITE)
-            textSize = 12f
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor(colorHex))
-                cornerRadius = 18f
-            }
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 115
-            ).apply {
-                setMargins(0, 4, 0, 8)
-            }
-        }
+    private Button createCleanButton(String text, String colorHex) {
+        Button b = new Button(this);
+        b.setText(text);
+        b.setTextColor(Color.WHITE);
+        b.setTextSize(12);
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(Color.parseColor(colorHex));
+        d.setCornerRadius(18);
+        b.setBackground(d);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 115);
+        p.setMargins(0, 4, 0, 8);
+        b.setLayoutParams(p);
+        return b;
     }
 
-    private fun sendLiveUpdate(y: Int, width: Int) {
-        val intent = Intent(ACTION_UPDATE_CONFIG).apply {
-            putExtra("island_y", y)
-            putExtra("island_width", width)
-        }
-        sendBroadcast(intent)
+    private void sendLiveUpdate(int y, int width) {
+        Intent intent = new Intent(ACTION_UPDATE_CONFIG);
+        intent.putExtra("island_y", y);
+        intent.putExtra("island_width", width);
+        sendBroadcast(intent);
     }
 }
