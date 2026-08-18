@@ -14,6 +14,7 @@ import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -42,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         root.addView(title);
 
         TextView subTitle = new TextView(this);
-        subTitle.setText("إعدادات الشحن، الموسيقى، والإشعارات المتقدمة");
+        subTitle.setText("لوحة التحكم: الشاحن • الموسيقى • الإشعارات");
         subTitle.setTextColor(Color.parseColor("#888888"));
         subTitle.setTextSize(12);
         subTitle.setPadding(0, 4, 0, 25);
@@ -51,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
         // 1. بطاقة الأذونات
         LinearLayout permCard = createCard();
         permCard.addView(createCardTitle("🛡️ أذونات التشغيل"));
-        Button btnAccess = createCleanButton("1. تفعيل الجزيرة في الخلفية (Accessibility)", "#1E88E5");
+        Button btnAccess = createCleanButton("1. تفعيل الجزيرة (Accessibility)", "#1E88E5");
         btnAccess.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         permCard.addView(btnAccess);
 
@@ -65,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         batteryCard.addView(createCardTitle("⚡ إعدادات الشاحن والبطارية"));
         batteryCard.addView(createSwitchRow("أنيميشن توصيل الشاحن السريع", "enable_charging_anim", true, prefs));
         batteryCard.addView(createSwitchRow("تنبيه اكتمال الشحن (100%)", "enable_battery_full", true, prefs));
-        batteryCard.addView(createSwitchRow("تنبيه انخفاض البطارية (أقل من 20%)", "enable_battery_low", true, prefs));
+        batteryCard.addView(createSwitchRow("تنبيه انخفاض البطارية (20%)", "enable_battery_low", true, prefs));
         root.addView(batteryCard);
 
         // 3. بطاقة إعدادات الموسيقى والوسائط
@@ -76,14 +77,7 @@ public class MainActivity extends AppCompatActivity {
         musicCard.addView(createSwitchRow("عرض اسم الفنان والأغنية", "enable_music_info", true, prefs));
         root.addView(musicCard);
 
-        // 4. بطاقة إعدادات الإشعارات والتطبيقات
-        LinearLayout notifCard = createCard();
-        notifCard.addView(createCardTitle("💬 إعدادات الإشعارات"));
-        notifCard.addView(createSwitchRow("توسيع الجزيرة عند وصول رسالة جديدة", "enable_notifications", true, prefs));
-        notifCard.addView(createSwitchRow("إخفاء الإشعار تلقائياً بعد 4 ثوانٍ", "auto_hide_notif", true, prefs));
-        root.addView(notifCard);
-
-        // 5. بطاقة محاذاة الكاميرا
+        // 4. بطاقة محاذاة الكاميرا
         LinearLayout positionCard = createCard();
         positionCard.addView(createCardTitle("📐 أبعاد وموضع الكاميرا"));
 
@@ -103,14 +97,14 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtY.setText("المسافة من الأعلى: " + progress + " px");
                 prefs.edit().putInt("island_y", progress).apply();
-                sendLiveUpdate(progress, prefs.getInt("island_width", 260));
+                sendLiveUpdate(progress, prefs.getInt("island_width", 280));
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
         positionCard.addView(seekY);
 
-        int currentW = prefs.getInt("island_width", 260);
+        int currentW = prefs.getInt("island_width", 280);
         TextView txtW = new TextView(this);
         txtW.setText("عرض الكبسولة في وضع السكون: " + currentW + " px");
         txtW.setTextColor(Color.parseColor("#AAAAAA"));
@@ -135,6 +129,18 @@ public class MainActivity extends AppCompatActivity {
         positionCard.addView(seekW);
 
         root.addView(positionCard);
+
+        // زر التجربة
+        Button btnTest = createCleanButton("✨ تجربة إشعار تفاعلي", "#242426");
+        btnTest.setTextColor(Color.parseColor("#00E676"));
+        btnTest.setOnClickListener(v -> {
+            Intent intent = new Intent(NotificationService.ACTION_NEW_NOTIFICATION);
+            intent.putExtra("title", "💬 رسالة جديدة");
+            intent.putExtra("text", "إشعارات الجزيرة تعمل بامتياز على Pixel 8 🔥");
+            sendBroadcast(intent);
+            Toast.makeText(this, "تم إرسال إشعار تجريبي!", Toast.LENGTH_SHORT).show();
+        });
+        root.addView(btnTest);
 
         scrollView.addView(root);
         setContentView(scrollView);
