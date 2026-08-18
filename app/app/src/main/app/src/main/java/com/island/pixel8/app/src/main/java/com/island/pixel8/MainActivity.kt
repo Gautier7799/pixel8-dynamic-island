@@ -9,7 +9,6 @@ import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
@@ -28,61 +27,72 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("island_prefs", MODE_PRIVATE);
 
         ScrollView scrollView = new ScrollView(this);
-        scrollView.setBackgroundColor(Color.parseColor("#0F0F0F")); // خلفية سوداء ناعمة فاخرة
+        scrollView.setBackgroundColor(Color.parseColor("#0F0F0F"));
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(40, 50, 40, 50);
 
-        // ترويسة أنيقة وبسيطة
+        // ترويسة أنيقة
         TextView title = new TextView(this);
-        title.setText("Pixel 8 Island");
+        title.setText("Pixel 8 Dynamic Island");
         title.setTextColor(Color.WHITE);
-        title.setTextSize(24);
+        title.setTextSize(22);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         root.addView(title);
 
         TextView subTitle = new TextView(this);
-        subTitle.setText("تخصيص نقي ومباشر بدون تعقيد");
-        subTitle.setTextColor(Color.parseColor("#777777"));
-        subTitle.setTextSize(13);
-        subTitle.setPadding(0, 4, 0, 30);
+        subTitle.setText("إعدادات الشحن، الموسيقى، والإشعارات المتقدمة");
+        subTitle.setTextColor(Color.parseColor("#888888"));
+        subTitle.setTextSize(12);
+        subTitle.setPadding(0, 4, 0, 25);
         root.addView(subTitle);
 
-        // 1. بطاقة الأذونات الأساسية
+        // 1. بطاقة الأذونات
         LinearLayout permCard = createCard();
-        permCard.addView(createCardTitle("الأذونات الأساسية"));
-
-        Button btnAccess = createCleanButton("إذن الظهور فوق الشاشة (Accessibility)", "#1E88E5");
+        permCard.addView(createCardTitle("🛡️ أذونات التشغيل"));
+        Button btnAccess = createCleanButton("1. تفعيل الجزيرة في الخلفية (Accessibility)", "#1E88E5");
         btnAccess.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         permCard.addView(btnAccess);
 
-        Button btnNotif = createCleanButton("إذن رصد الإشعارات (Notifications)", "#2E7D32");
+        Button btnNotif = createCleanButton("2. إذن الإشعارات والموسيقى (Notifications)", "#2E7D32");
         btnNotif.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
         permCard.addView(btnNotif);
-
         root.addView(permCard);
 
-        // 2. بطاقة الميزات وتفعيل ما تريده فقط
-        LinearLayout featuresCard = createCard();
-        featuresCard.addView(createCardTitle("الميزات النشطة"));
+        // 2. بطاقة إعدادات الشاحن والبطارية
+        LinearLayout batteryCard = createCard();
+        batteryCard.addView(createCardTitle("⚡ إعدادات الشاحن والبطارية"));
+        batteryCard.addView(createSwitchRow("أنيميشن توصيل الشاحن السريع", "enable_charging_anim", true, prefs));
+        batteryCard.addView(createSwitchRow("تنبيه اكتمال الشحن (100%)", "enable_battery_full", true, prefs));
+        batteryCard.addView(createSwitchRow("تنبيه انخفاض البطارية (أقل من 20%)", "enable_battery_low", true, prefs));
+        root.addView(batteryCard);
 
-        featuresCard.addView(createSwitchRow("⚡ تنبيهات الشحن والبطارية", "enable_battery", true, prefs));
-        featuresCard.addView(createSwitchRow("🎵 شريط الموسيقى الحي", "enable_music", true, prefs));
-        featuresCard.addView(createSwitchRow("💬 إشعارات التطبيقات", "enable_notifications", true, prefs));
+        // 3. بطاقة إعدادات الموسيقى والوسائط
+        LinearLayout musicCard = createCard();
+        musicCard.addView(createCardTitle("🎵 إعدادات مشغل الموسيقى"));
+        musicCard.addView(createSwitchRow("إظهار شريط الموسيقى عند التشغيل", "enable_music", true, prefs));
+        musicCard.addView(createSwitchRow("موجة صوتية متحركة (Waveform)", "enable_music_wave", true, prefs));
+        musicCard.addView(createSwitchRow("عرض اسم الفنان والأغنية", "enable_music_info", true, prefs));
+        root.addView(musicCard);
 
-        root.addView(featuresCard);
+        // 4. بطاقة إعدادات الإشعارات والتطبيقات
+        LinearLayout notifCard = createCard();
+        notifCard.addView(createCardTitle("💬 إعدادات الإشعارات"));
+        notifCard.addView(createSwitchRow("توسيع الجزيرة عند وصول رسالة جديدة", "enable_notifications", true, prefs));
+        notifCard.addView(createSwitchRow("إخفاء الإشعار تلقائياً بعد 4 ثوانٍ", "auto_hide_notif", true, prefs));
+        root.addView(notifCard);
 
-        // 3. بطاقة ضبط موضع الكاميرا بدقة
+        // 5. بطاقة محاذاة الكاميرا
         LinearLayout positionCard = createCard();
-        positionCard.addView(createCardTitle("محاذاة ثقب الكاميرا"));
+        positionCard.addView(createCardTitle("📐 أبعاد وموضع الكاميرا"));
 
         int currentY = prefs.getInt("island_y", 12);
         TextView txtY = new TextView(this);
         txtY.setText("المسافة من الأعلى: " + currentY + " px");
         txtY.setTextColor(Color.parseColor("#AAAAAA"));
         txtY.setTextSize(12);
-        txtY.setPadding(0, 10, 0, 5);
+        txtY.setPadding(0, 5, 0, 5);
         positionCard.addView(txtY);
 
         SeekBar seekY = new SeekBar(this);
@@ -102,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
 
         int currentW = prefs.getInt("island_width", 260);
         TextView txtW = new TextView(this);
-        txtW.setText("عرض الكبسولة الصامتة: " + currentW + " px");
+        txtW.setText("عرض الكبسولة في وضع السكون: " + currentW + " px");
         txtW.setTextColor(Color.parseColor("#AAAAAA"));
         txtW.setTextSize(12);
         txtW.setPadding(0, 15, 0, 5);
@@ -115,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
         seekW.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                txtW.setText("عرض الكبسولة الصامتة: " + progress + " px");
+                txtW.setText("عرض الكبسولة في وضع السكون: " + progress + " px");
                 prefs.edit().putInt("island_width", progress).apply();
                 sendLiveUpdate(prefs.getInt("island_y", 12), progress);
             }
@@ -133,14 +143,14 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout createCard() {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(35, 30, 35, 30);
+        card.setPadding(35, 28, 35, 28);
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.parseColor("#1C1C1E")); // رمادي داكن فخم بتصميم البطاقات
-        bg.setCornerRadius(28);
+        bg.setColor(Color.parseColor("#1C1C1E"));
+        bg.setCornerRadius(26);
         card.setBackground(bg);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        p.setMargins(0, 0, 0, 24);
+        p.setMargins(0, 0, 0, 20);
         card.setLayoutParams(p);
         return card;
     }
@@ -151,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
         tv.setTextColor(Color.WHITE);
         tv.setTextSize(14);
         tv.setTypeface(null, android.graphics.Typeface.BOLD);
-        tv.setPadding(0, 0, 0, 15);
+        tv.setPadding(0, 0, 0, 12);
         return tv;
     }
 
@@ -159,11 +169,11 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, 12, 0, 12);
+        row.setPadding(0, 8, 0, 8);
 
         TextView label = new TextView(this);
         label.setText(title);
-        label.setTextColor(Color.parseColor("#DDDDDD"));
+        label.setTextColor(Color.parseColor("#CCCCCC"));
         label.setTextSize(13);
         label.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
@@ -185,11 +195,11 @@ public class MainActivity extends AppCompatActivity {
         b.setTextSize(12);
         GradientDrawable d = new GradientDrawable();
         d.setColor(Color.parseColor(colorHex));
-        d.setCornerRadius(20);
+        d.setCornerRadius(18);
         b.setBackground(d);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 115);
-        p.setMargins(0, 6, 0, 10);
+        p.setMargins(0, 4, 0, 8);
         b.setLayoutParams(p);
         return b;
     }
