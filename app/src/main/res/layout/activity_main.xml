@@ -2,207 +2,55 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F0F0F"
-    android:padding="20dp">
+    android:background="#121212">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="VERTICAL"
+        android:padding="24dp">
 
-        <!-- ترويسة أنيقة -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Pixel 8 Dynamic Island"
             android:textColor="#FFFFFF"
-            android:textSize="24sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="تحكم نقي ومباشر: شاحن • موسيقى • إشعارات"
+            android:text="إعدادات الجزيرة التفاعلية"
             android:textColor="#888888"
-            android:textSize="12sp"
-            android:layout_marginBottom="20dp" />
+            android:textSize="13sp"
+            android:paddingBottom="24dp" />
 
-        <!-- 1. بطاقة الأذونات -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1C1C1E"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🛡️ أذونات التشغيل"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginBottom="12dp" />
-
-            <Button
-                android:id="@+id/btnAccessibility"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:text="1. تفعيل الجزيرة في الخلفية"
-                android:backgroundTint="#1E88E5"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:layout_marginBottom="8dp" />
-
-            <Button
-                android:id="@+id/btnNotification"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:text="2. إذن قراءة الإشعارات والموسيقى"
-                android:backgroundTint="#2E7D32"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <!-- 2. بطاقة إعدادات الشاحن -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1C1C1E"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚡ إعدادات الشاحن والبطارية"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginBottom="10dp" />
-
-            <Switch
-                android:id="@+id/swCharging"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="أنيميشن توصيل الشاحن السريع"
-                android:textColor="#CCCCCC"
-                android:textSize="13sp"
-                android:checked="true"
-                android:padding="6dp" />
-
-            <Switch
-                android:id="@+id/swBatteryFull"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="تنبيه اكتمال الشحن (100%)"
-                android:textColor="#CCCCCC"
-                android:textSize="13sp"
-                android:checked="true"
-                android:padding="6dp" />
-        </LinearLayout>
-
-        <!-- 3. بطاقة إعدادات الموسيقى -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1C1C1E"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🎵 إعدادات مشغل الموسيقى"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginBottom="10dp" />
-
-            <Switch
-                android:id="@+id/swMusic"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="إظهار شريط الموسيقى الحي"
-                android:textColor="#CCCCCC"
-                android:textSize="13sp"
-                android:checked="true"
-                android:padding="6dp" />
-
-            <Switch
-                android:id="@+id/swWave"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="موجة صوتية متحركة (Waveform)"
-                android:textColor="#CCCCCC"
-                android:textSize="13sp"
-                android:checked="true"
-                android:padding="6dp" />
-        </LinearLayout>
-
-        <!-- 4. بطاقة محاذاة الكاميرا والأبعاد -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1C1C1E"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📐 أبعاد وموضع الكاميرا"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginBottom="10dp" />
-
-            <TextView
-                android:id="@+id/txtY"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="المسافة من الأعلى: 12 px"
-                android:textColor="#AAAAAA"
-                android:textSize="12sp" />
-
-            <SeekBar
-                android:id="@+id/seekY"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="60"
-                android:progress="12"
-                android:layout_marginBottom="12dp" />
-
-            <TextView
-                android:id="@+id/txtWidth"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="عرض الكبسولة في وضع السكون: 280 px"
-                android:textColor="#AAAAAA"
-                android:textSize="12sp" />
-
-            <SeekBar
-                android:id="@+id/seekWidth"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:min="180"
-                android:max="380"
-                android:progress="280" />
-        </LinearLayout>
-
-        <!-- زر تجربة الإشعار -->
         <Button
-            android:id="@+id/btnTest"
+            android:id="@+id/btn_accessibility"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:text="✨ تجربة إشعار تفاعلي"
-            android:backgroundTint="#242426"
-            android:textColor="#00E676"
-            android:layout_marginBottom="30dp" />
+            android:layout_height="60dp"
+            android:layout_marginBottom="12dp"
+            android:text="1. تفعيل الجزيرة (ACCESSIBILITY)"
+            android:backgroundTint="#1976D2"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btn_notification"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="12dp"
+            android:text="2. إذن الإشعارات (NOTIFICATIONS)"
+            android:backgroundTint="#388E3C"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btn_test"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="✨ تجربة الجزيرة الآن"
+            android:backgroundTint="#333333"
+            android:textColor="#00E676" />
 
     </LinearLayout>
 </ScrollView>
