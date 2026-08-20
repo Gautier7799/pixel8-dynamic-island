@@ -59,8 +59,9 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     if (!Settings.canDrawOverlays(MainActivity.this)) {
-                        startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                Uri.parse("package:" + getPackageName())));
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:" + getPackageName()));
+                        startActivity(intent);
                     } else {
                         startService(new Intent(MainActivity.this, DynamicIslandService.class));
                         Toast.makeText(MainActivity.this, "الجزيرة نشطة بنجاح! 🏝️", Toast.LENGTH_SHORT).show();
@@ -156,7 +157,9 @@ public class MainActivity extends Activity {
         GradientDrawable shape = new GradientDrawable();
         shape.setCornerRadius(radiusPx);
         shape.setColor(bgColor);
-        if (strokeColor != Color.TRANSPARENT) shape.setStroke(dpToPx(1), strokeColor);
+        if (strokeColor != Color.TRANSPARENT) {
+            shape.setStroke(dpToPx(1), strokeColor);
+        }
         return shape;
     }
 
