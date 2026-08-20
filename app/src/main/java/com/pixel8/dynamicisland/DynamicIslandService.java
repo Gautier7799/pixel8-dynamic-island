@@ -37,7 +37,7 @@ public class DynamicIslandService extends Service {
     private Handler autoShrinkHandler = new Handler(Looper.getMainLooper());
     private Runnable autoShrinkRunnable;
 
-    // مقاسات هاتف Pixel 8 الدقيقة حول ثقب الكاميرا
+    // مقاسات هاتف Pixel 8 الدقيقة حول الكاميرا
     private final int NOTCH_Y = 12;
     private final int COMPACT_WIDTH = 195;
     private final int COMPACT_HEIGHT = 40;
@@ -50,6 +50,7 @@ public class DynamicIslandService extends Service {
     private final BroadcastReceiver eventReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
             String action = intent.getAction();
             if (Intent.ACTION_BATTERY_CHANGED.equals(action)) {
                 int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
@@ -101,7 +102,12 @@ public class DynamicIslandService extends Service {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction("com.pixel8.dynamicisland.NOTIF");
-        registerReceiver(eventReceiver, filter);
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(eventReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(eventReceiver, filter);
+        }
     }
 
     private void buildIslandViews() {
@@ -109,7 +115,6 @@ public class DynamicIslandService extends Service {
         islandRoot.setBackground(createCurvedBackground(dpToPx(20), Color.BLACK, Color.parseColor("#38BDF8")));
         islandRoot.setClipToOutline(true);
 
-        // واجهة الكبسولة المضغوطة (Compact)
         compactLayout = new LinearLayout(this);
         compactLayout.setOrientation(LinearLayout.HORIZONTAL);
         compactLayout.setGravity(Gravity.CENTER_VERTICAL);
@@ -128,9 +133,9 @@ public class DynamicIslandService extends Service {
         tvCompactRight.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         compactLayout.addView(tvCompactRight);
 
-        islandRoot.addView(compactLayout, new FrameLayout.LayoutParams(-1, -1));
+        islandRoot.addView(compactLayout, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-        // واجهة البطاقة المنبثقة المتمددة (Expanded Card)
         expandedLayout = new LinearLayout(this);
         expandedLayout.setOrientation(LinearLayout.VERTICAL);
         expandedLayout.setGravity(Gravity.CENTER_VERTICAL);
@@ -174,9 +179,10 @@ public class DynamicIslandService extends Service {
 
         expandedLayout.addView(buttonsRow);
 
-        islandRoot.addView(expandedLayout, new FrameLayout.LayoutParams(-1, -1));
+        islandRoot.addView(expandedLayout, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-        // 👈 التفاعل باللمس: النقر لتمديد أو تقليص الجزيرة
+        // النقر على الجزيرة لتمديدها أو تقليصها
         islandRoot.setOnClickListener(v -> {
             if (!isExpanded) {
                 expandIsland();
@@ -248,7 +254,8 @@ public class DynamicIslandService extends Service {
     }
 
     private int dpToPx(int dp) {
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
     @Override
