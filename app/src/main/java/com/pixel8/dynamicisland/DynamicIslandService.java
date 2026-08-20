@@ -37,7 +37,7 @@ public class DynamicIslandService extends Service {
     private Handler autoShrinkHandler = new Handler(Looper.getMainLooper());
     private Runnable autoShrinkRunnable;
 
-    // مقاسات هاتف Pixel 8 الدقيقة حول الكاميرا
+    // أبعاد وموضع الجزيرة حول كاميرا Pixel 8
     private final int NOTCH_Y = 12;
     private final int COMPACT_WIDTH = 195;
     private final int COMPACT_HEIGHT = 40;
@@ -65,7 +65,7 @@ public class DynamicIslandService extends Service {
                 String text = intent.getStringExtra("text");
                 String icon = intent.getStringExtra("icon");
                 if (title == null) title = "إشعار جديد";
-                if (text == null) text = "نشاط حي نشط";
+                if (text == null) text = "نشاط تفاعلي نشط";
                 if (icon == null) icon = "💬";
                 popOutIsland(icon + " " + title, "✨", title, text, 5000);
             }
@@ -102,12 +102,7 @@ public class DynamicIslandService extends Service {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction("com.pixel8.dynamicisland.NOTIF");
-
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(eventReceiver, filter, Context.RECEIVER_EXPORTED);
-        } else {
-            registerReceiver(eventReceiver, filter);
-        }
+        registerReceiver(eventReceiver, filter);
     }
 
     private void buildIslandViews() {
@@ -133,8 +128,7 @@ public class DynamicIslandService extends Service {
         tvCompactRight.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         compactLayout.addView(tvCompactRight);
 
-        islandRoot.addView(compactLayout, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        islandRoot.addView(compactLayout, new FrameLayout.LayoutParams(-1, -1));
 
         expandedLayout = new LinearLayout(this);
         expandedLayout.setOrientation(LinearLayout.VERTICAL);
@@ -165,29 +159,34 @@ public class DynamicIslandService extends Service {
         btnAction.setTextColor(Color.WHITE);
         btnAction.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         btnAction.setBackground(createCurvedBackground(dpToPx(10), Color.parseColor("#0284C7"), Color.TRANSPARENT));
-        btnAction.setOnClickListener(v -> {
-            try {
-                Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
-                if (launchIntent != null) {
-                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(launchIntent);
-                }
-            } catch (Exception ignored) {}
-            shrinkIsland();
+        btnAction.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+                    if (launchIntent != null) {
+                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(launchIntent);
+                    }
+                } catch (Exception ignored) {}
+                shrinkIsland();
+            }
         });
         buttonsRow.addView(btnAction);
 
         expandedLayout.addView(buttonsRow);
 
-        islandRoot.addView(expandedLayout, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        islandRoot.addView(expandedLayout, new FrameLayout.LayoutParams(-1, -1));
 
-        // النقر على الجزيرة لتمديدها أو تقليصها
-        islandRoot.setOnClickListener(v -> {
-            if (!isExpanded) {
-                expandIsland();
-            } else {
-                shrinkIsland();
+        // النقر على الجزيرة للتمدد أو الانكماش
+        islandRoot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isExpanded) {
+                    expandIsland();
+                } else {
+                    shrinkIsland();
+                }
             }
         });
     }
@@ -201,7 +200,12 @@ public class DynamicIslandService extends Service {
         expandIsland();
 
         if (autoShrinkRunnable != null) autoShrinkHandler.removeCallbacks(autoShrinkRunnable);
-        autoShrinkRunnable = this::shrinkIsland;
+        autoShrinkRunnable = new Runnable() {
+            @Override
+            public void run() {
+                shrinkIsland();
+            }
+        };
         autoShrinkHandler.postDelayed(autoShrinkRunnable, durationMs);
     }
 
@@ -227,18 +231,24 @@ public class DynamicIslandService extends Service {
         ValueAnimator animW = ValueAnimator.ofInt(dpToPx(fromW), dpToPx(toW));
         animW.setDuration(320);
         animW.setInterpolator(new OvershootInterpolator(1.1f));
-        animW.addUpdateListener(animation -> {
-            params.width = (int) animation.getAnimatedValue();
-            windowManager.updateViewLayout(islandRoot, params);
+        animW.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                params.width = (Integer) animation.getAnimatedValue();
+                windowManager.updateViewLayout(islandRoot, params);
+            }
         });
 
         ValueAnimator animH = ValueAnimator.ofInt(dpToPx(fromH), dpToPx(toH));
         animH.setDuration(320);
         animH.setInterpolator(new OvershootInterpolator(1.1f));
-        animH.addUpdateListener(animation -> {
-            params.height = (int) animation.getAnimatedValue();
-            islandRoot.setBackground(createCurvedBackground(dpToPx(cornerRadius), Color.BLACK, Color.parseColor("#38BDF8")));
-            windowManager.updateViewLayout(islandRoot, params);
+        animH.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                params.height = (Integer) animation.getAnimatedValue();
+                islandRoot.setBackground(createCurvedBackground(dpToPx(cornerRadius), Color.BLACK, Color.parseColor("#38BDF8")));
+                windowManager.updateViewLayout(islandRoot, params);
+            }
         });
 
         animW.start();
