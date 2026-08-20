@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
@@ -45,20 +46,25 @@ public class MainActivity extends Activity {
         subtitle.setText("لوحة التحكم والأنشطة التفاعلية الحية 🏝️");
         subtitle.setTextColor(Color.parseColor("#38BDF8"));
         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        LinearLayout.LayoutParams subP = new LinearLayout.LayoutParams(-2, -2);
+        LinearLayout.LayoutParams subP = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         subP.setMargins(0, dpToPx(4), 0, dpToPx(24));
         subtitle.setLayoutParams(subP);
         root.addView(subtitle);
 
         // Section 1: Activation
         root.addView(createSectionTitle("التفعيل والتشغيل"));
-        root.addView(createButton("1. تفعيل الجزيرة فوق التطبيقات ⚡", "#0284C7", v -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (!Settings.canDrawOverlays(this)) {
-                    startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
-                } else {
-                    startService(new Intent(this, DynamicIslandService.class));
-                    Toast.makeText(this, "الجزيرة نشطة بنجاح! 🏝️", Toast.LENGTH_SHORT).show();
+        root.addView(createButton("1. تفعيل الجزيرة فوق التطبيقات ⚡", "#0284C7", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (!Settings.canDrawOverlays(MainActivity.this)) {
+                        startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:" + getPackageName())));
+                    } else {
+                        startService(new Intent(MainActivity.this, DynamicIslandService.class));
+                        Toast.makeText(MainActivity.this, "الجزيرة نشطة بنجاح! 🏝️", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         }));
@@ -85,7 +91,7 @@ public class MainActivity extends Activity {
         setContentView(scrollView);
     }
 
-    private void addGridButton(GridLayout grid, String title, String text, String type, String icon) {
+    private void addGridButton(GridLayout grid, final String title, final String text, final String type, final String icon) {
         Button btn = new Button(this);
         btn.setText(title);
         btn.setTextColor(Color.WHITE);
@@ -100,15 +106,18 @@ public class MainActivity extends Activity {
         p.setMargins(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4));
         btn.setLayoutParams(p);
 
-        btn.setOnClickListener(v -> {
-            startService(new Intent(this, DynamicIslandService.class));
-            Intent intent = new Intent("com.pixel8.dynamicisland.NOTIF");
-            intent.putExtra("title", title);
-            intent.putExtra("text", text);
-            intent.putExtra("type", type);
-            intent.putExtra("icon", icon);
-            sendBroadcast(intent);
-            Toast.makeText(this, "تم تفعيل " + title + " على الجزيرة! 🚀", Toast.LENGTH_SHORT).show();
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startService(new Intent(MainActivity.this, DynamicIslandService.class));
+                Intent intent = new Intent("com.pixel8.dynamicisland.NOTIF");
+                intent.putExtra("title", title);
+                intent.putExtra("text", text);
+                intent.putExtra("type", type);
+                intent.putExtra("icon", icon);
+                sendBroadcast(intent);
+                Toast.makeText(MainActivity.this, "تم تفعيل " + title + " على الجزيرة! 🚀", Toast.LENGTH_SHORT).show();
+            }
         });
 
         grid.addView(btn);
@@ -120,13 +129,14 @@ public class MainActivity extends Activity {
         tv.setTextColor(Color.parseColor("#94A3B8"));
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tv.setTypeface(Typeface.DEFAULT_BOLD);
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         p.setMargins(0, dpToPx(16), 0, dpToPx(10));
         tv.setLayoutParams(p);
         return tv;
     }
 
-    private Button createButton(String text, String colorHex, android.view.View.OnClickListener listener) {
+    private Button createButton(String text, String colorHex, View.OnClickListener listener) {
         Button btn = new Button(this);
         btn.setText(text);
         btn.setTextColor(Color.WHITE);
@@ -135,7 +145,8 @@ public class MainActivity extends Activity {
         btn.setBackground(createCurvedBg(dpToPx(14), Color.parseColor(colorHex), Color.TRANSPARENT));
         btn.setOnClickListener(listener);
 
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dpToPx(52));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(52));
         p.setMargins(0, 0, 0, dpToPx(10));
         btn.setLayoutParams(p);
         return btn;
@@ -150,6 +161,7 @@ public class MainActivity extends Activity {
     }
 
     private int dpToPx(int dp) {
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 }
