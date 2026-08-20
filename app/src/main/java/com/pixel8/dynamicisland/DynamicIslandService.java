@@ -27,6 +27,9 @@ import android.widget.TextView;
 
 public class DynamicIslandService extends Service {
 
+    // هذا هو المتغير المطلوب لملف NotificationService.java
+    public static DynamicIslandService instance = null;
+
     private WindowManager windowManager;
     private FrameLayout islandRoot;
     private LinearLayout compactLayout;
@@ -58,16 +61,13 @@ public class DynamicIslandService extends Service {
                                      status == BatteryManager.BATTERY_STATUS_FULL;
                 int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
                 if (isCharging) {
-                    popOutIsland("⚡ الشحن السريع: " + level + "%", "🔋", "🔋 جاري الشحن السريع (30W)", "نسبة البطارية الحالية " + level + "%", 4500);
+                    showIsland("🔋 الشحن السريع", "نسبة البطارية " + level + "%", "⚡");
                 }
             } else if ("com.pixel8.dynamicisland.NOTIF".equals(action)) {
                 String title = intent.getStringExtra("title");
                 String text = intent.getStringExtra("text");
                 String icon = intent.getStringExtra("icon");
-                if (title == null) title = "إشعار جديد";
-                if (text == null) text = "نشاط تفاعلي نشط";
-                if (icon == null) icon = "💬";
-                popOutIsland(icon + " " + title, "✨", title, text, 5000);
+                showIsland(title != null ? title : "إشعار جديد", text != null ? text : "", icon != null ? icon : "💬");
             }
         }
     };
@@ -75,6 +75,7 @@ public class DynamicIslandService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
         int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -178,7 +179,7 @@ public class DynamicIslandService extends Service {
 
         islandRoot.addView(expandedLayout, new FrameLayout.LayoutParams(-1, -1));
 
-        // النقر على الجزيرة للتمدد أو الانكماش
+        // استجابة الجزيرة للمس
         islandRoot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -191,22 +192,36 @@ public class DynamicIslandService extends Service {
         });
     }
 
-    public void popOutIsland(String compactText, String compactIcon, String expTitle, String expText, int durationMs) {
-        tvCompactLeft.setText(compactText);
-        tvCompactRight.setText(compactIcon);
-        tvExpTitle.setText(expTitle);
-        tvExpText.setText(expText);
+    // هذه الدوال هي ما يحتاجه NotificationService.java بالضبط
+    public void showIsland(String title, String text) {
+        showIsland(title, text, "💬", 5000);
+    }
 
-        expandIsland();
+    public void showIsland(String title, String text, String iconOrType) {
+        showIsland(title, text, iconOrType, 5000);
+    }
 
-        if (autoShrinkRunnable != null) autoShrinkHandler.removeCallbacks(autoShrinkRunnable);
-        autoShrinkRunnable = new Runnable() {
+    public void showIsland(String title, String text, String iconOrType, int durationMs) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
-                shrinkIsland();
+                if (tvCompactLeft != null) tvCompactLeft.setText(title);
+                if (tvCompactRight != null) tvCompactRight.setText(iconOrType != null ? iconOrType : "🔔");
+                if (tvExpTitle != null) tvExpTitle.setText(title);
+                if (tvExpText != null) tvExpText.setText(text);
+
+                expandIsland();
+
+                if (autoShrinkRunnable != null) autoShrinkHandler.removeCallbacks(autoShrinkRunnable);
+                autoShrinkRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        shrinkIsland();
+                    }
+                };
+                autoShrinkHandler.postDelayed(autoShrinkRunnable, durationMs);
             }
-        };
-        autoShrinkHandler.postDelayed(autoShrinkRunnable, durationMs);
+        });
     }
 
     private void expandIsland() {
@@ -271,6 +286,7 @@ public class DynamicIslandService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        instance = null;
         try {
             unregisterReceiver(eventReceiver);
             if (islandRoot != null) windowManager.removeView(islandRoot);
