@@ -50,8 +50,8 @@ public class MainActivity extends Activity {
         subtitle.setLayoutParams(subP);
         root.addView(subtitle);
 
-        // Permissions Section
-        root.addView(createSectionTitle("الصلاحيات الأساسية"));
+        // Section 1: Activation
+        root.addView(createSectionTitle("التفعيل والتشغيل"));
         root.addView(createButton("1. تفعيل الجزيرة فوق التطبيقات ⚡", "#0284C7", v -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (!Settings.canDrawOverlays(this)) {
@@ -63,11 +63,7 @@ public class MainActivity extends Activity {
             }
         }));
 
-        root.addView(createButton("2. تفعيل قراءة الإشعارات والموسيقى 🔔", "#16A34A", v -> {
-            startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
-        }));
-
-        // Live Activities Grid
+        // Section 2: Live Activities Grid
         root.addView(createSectionTitle("الأنشطة التفاعلية الحية (Live Activities)"));
 
         GridLayout grid = new GridLayout(this);
@@ -112,7 +108,7 @@ public class MainActivity extends Activity {
             intent.putExtra("type", type);
             intent.putExtra("icon", icon);
             sendBroadcast(intent);
-            Toast.makeText(this, "تم إرسال " + title + " إلى الجزيرة! 🚀", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "تم تفعيل " + title + " على الجزيرة! 🚀", Toast.LENGTH_SHORT).show();
         });
 
         grid.addView(btn);
