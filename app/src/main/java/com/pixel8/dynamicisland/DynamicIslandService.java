@@ -1,211 +1,273 @@
 package com.pixel8.dynamicisland;
 
-import android.accessibilityservice.AccessibilityService;
 import android.animation.ValueAnimator;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
+import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.accessibility.AccessibilityEvent;
+import android.view.animation.OvershootInterpolator;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-public class DynamicIslandService extends AccessibilityService {
-
-    public static DynamicIslandService instance = null;
+public class DynamicIslandService extends Service {
 
     private WindowManager windowManager;
-    private LinearLayout islandContainer;
-    private TextView leftIcon;
-    private TextView mainText;
-    private TextView rightText;
+    private FrameLayout islandRoot;
+    private LinearLayout compactLayout;
+    private LinearLayout expandedLayout;
     private WindowManager.LayoutParams params;
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private boolean isExpanded = false;
-    private boolean lastChargingState = false;
 
-    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+    private boolean isExpanded = false;
+    private Handler autoShrinkHandler = new Handler(Looper.getMainLooper());
+    private Runnable autoShrinkRunnable;
+
+    // مقاسات هاتف Pixel 8 الدقيقة
+    private final int NOTCH_Y = 13;
+    private final int COMPACT_WIDTH = 185;
+    private final int COMPACT_HEIGHT = 38;
+    private final int EXPANDED_WIDTH = 340;
+    private final int EXPANDED_HEIGHT = 110;
+
+    private TextView tvCompactLeft, tvCompactRight;
+    private TextView tvExpTitle, tvExpText;
+    private Button btnExpAction, btnExpClose;
+    private PendingIntent currentPendingIntent;
+
+    private final BroadcastReceiver eventReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent == null) return;
-            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-            boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                                 status == BatteryManager.BATTERY_STATUS_FULL;
-            int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-
-            if (isCharging != lastChargingState) {
-                lastChargingState = isCharging;
+            String action = intent.getAction();
+            if (Intent.ACTION_BATTERY_CHANGED.equals(action)) {
+                int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                                     status == BatteryManager.BATTERY_STATUS_FULL;
+                int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
                 if (isCharging) {
-                    showIsland("⚡ جاري الشحن السريع", level + "%", "🔋", Color.parseColor("#00E676"));
-                } else {
-                    showIsland("تم فصل الشاحن", "", "🔋", Color.LTGRAY);
+                    popOutIsland("⚡ جاري الشحن السريع: " + level + "%", "🔋 " + level + "%", "🔋 تم توصيل الشاحن", "متبقي حوالي 25 دقيقة لاكتمال الشحن", 4500);
                 }
+            } else if ("com.pixel8.dynamicisland.NOTIF".equals(action)) {
+                String title = intent.getStringExtra("title");
+                String text = intent.getStringExtra("text");
+                String icon = intent.getStringExtra("icon");
+                if (title == null) title = "إشعار جديد";
+                if (text == null) text = "لديك تنبيه جديد";
+                if (icon == null) icon = "💬";
+                popOutIsland(icon + " " + title, "🔔", title, text, 5000);
             }
         }
     };
 
     @Override
-    public void onServiceConnected() {
-        super.onServiceConnected();
-        instance = this;
+    public void onCreate() {
+        super.onCreate();
+        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(batteryReceiver, filter, Context.RECEIVER_EXPORTED);
-        } else {
-            registerReceiver(batteryReceiver, filter);
-        }
+        int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                : WindowManager.LayoutParams.TYPE_PHONE;
 
-        createIsland();
-    }
+        params = new WindowManager.LayoutParams(
+                dpToPx(COMPACT_WIDTH),
+                dpToPx(COMPACT_HEIGHT),
+                layoutFlag,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT
+        );
+        params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        params.y = dpToPx(NOTCH_Y);
 
-    @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {}
-
-    @Override
-    public void onInterrupt() {}
-
-    private void createIsland() {
-        if (islandContainer != null) return;
+        buildIslandViews();
 
         try {
-            windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-            SharedPreferences prefs = getSharedPreferences("island_prefs", MODE_PRIVATE);
-            int baseWidth = prefs.getInt("island_width", 280);
-            int customY = prefs.getInt("island_y", 12);
+            windowManager.addView(islandRoot, params);
+        } catch (Exception ignored) {}
 
-            islandContainer = new LinearLayout(this);
-            islandContainer.setOrientation(LinearLayout.HORIZONTAL);
-            islandContainer.setGravity(Gravity.CENTER);
-            islandContainer.setPadding(25, 0, 25, 0);
-
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(Color.BLACK);
-            bg.setCornerRadius(100f);
-            bg.setStroke(1, Color.parseColor("#222222"));
-            islandContainer.setBackground(bg);
-
-            leftIcon = new TextView(this);
-            leftIcon.setTextSize(14f);
-            leftIcon.setVisibility(View.GONE);
-            islandContainer.addView(leftIcon);
-
-            mainText = new TextView(this);
-            mainText.setTextColor(Color.WHITE);
-            mainText.setTextSize(12f);
-            mainText.setSingleLine(true);
-            mainText.setPadding(12, 0, 12, 0);
-            mainText.setVisibility(View.GONE);
-            islandContainer.addView(mainText);
-
-            rightText = new TextView(this);
-            rightText.setTextSize(13f);
-            rightText.setVisibility(View.GONE);
-            islandContainer.addView(rightText);
-
-            int flag = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-                       WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
-                       WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
-
-            params = new WindowManager.LayoutParams(
-                    baseWidth,
-                    90,
-                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                    flag,
-                    PixelFormat.TRANSLUCENT
-            );
-            params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-            params.y = customY;
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-            }
-
-            windowManager.addView(islandContainer, params);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_BATTERY_CHANGED);
+        filter.addAction("com.pixel8.dynamicisland.NOTIF");
+        registerReceiver(eventReceiver, filter);
     }
 
-    public void showIsland(String title, String subtitle, String symbol, int color) {
-        handler.post(() -> {
-            isExpanded = true;
-            leftIcon.setVisibility(symbol.isEmpty() ? View.GONE : View.VISIBLE);
-            leftIcon.setText(symbol);
+    private void buildIslandViews() {
+        islandRoot = new FrameLayout(this);
+        islandRoot.setBackground(createCurvedBackground(dpToPx(20), Color.BLACK, Color.parseColor("#38BDF8")));
+        islandRoot.setClipToOutline(true);
 
-            mainText.setVisibility(View.VISIBLE);
-            mainText.setText(subtitle.isEmpty() ? title : title + ": " + subtitle);
+        // واجهة الكبسولة المضغوطة (Compact)
+        compactLayout = new LinearLayout(this);
+        compactLayout.setOrientation(LinearLayout.HORIZONTAL);
+        compactLayout.setGravity(Gravity.CENTER_VERTICAL);
+        compactLayout.setPadding(dpToPx(14), 0, dpToPx(14), 0);
 
-            rightText.setVisibility(symbol.isEmpty() ? View.GONE : View.VISIBLE);
-            rightText.setText(symbol);
-            rightText.setTextColor(color);
+        tvCompactLeft = new TextView(this);
+        tvCompactLeft.setText("⚡ جاري الشحن: 41%");
+        tvCompactLeft.setTextColor(Color.WHITE);
+        tvCompactLeft.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        tvCompactLeft.setTypeface(Typeface.DEFAULT_BOLD);
+        LinearLayout.LayoutParams leftParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        compactLayout.addView(tvCompactLeft, leftParams);
 
-            int w = params != null ? params.width : 280;
-            int h = params != null ? params.height : 90;
-            animateIsland(w, 680, h, 120);
+        tvCompactRight = new TextView(this);
+        tvCompactRight.setText("🔋");
+        tvCompactRight.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        compactLayout.addView(tvCompactRight);
 
-            handler.removeCallbacksAndMessages(null);
-            handler.postDelayed(this::collapseIsland, 3800);
-        });
-    }
+        islandRoot.addView(compactLayout, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-    private void collapseIsland() {
-        SharedPreferences prefs = getSharedPreferences("island_prefs", MODE_PRIVATE);
-        int baseWidth = prefs.getInt("island_width", 280);
-        leftIcon.setVisibility(View.GONE);
-        mainText.setVisibility(View.GONE);
-        rightText.setVisibility(View.GONE);
-        int w = params != null ? params.width : 680;
-        int h = params != null ? params.height : 120;
-        animateIsland(w, baseWidth, h, 90);
-        isExpanded = false;
-    }
+        // واجهة البطاقة المنبثقة المتمددة (Expanded Card)
+        expandedLayout = new LinearLayout(this);
+        expandedLayout.setOrientation(LinearLayout.VERTICAL);
+        expandedLayout.setGravity(Gravity.CENTER_VERTICAL);
+        expandedLayout.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
+        expandedLayout.setVisibility(View.GONE);
 
-    public void updateDimensions(int y, int width) {
-        if (islandContainer != null && windowManager != null && !isExpanded) {
-            params.y = y;
-            params.width = width;
+        tvExpTitle = new TextView(this);
+        tvExpTitle.setText("الجزيرة التفاعلية");
+        tvExpTitle.setTextColor(Color.parseColor("#38BDF8"));
+        tvExpTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        tvExpTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        expandedLayout.addView(tvExpTitle);
+
+        tvExpText = new TextView(this);
+        tvExpText.setText("انقر لفتح التطبيق أو التفاعل مع النشاط الحي");
+        tvExpText.setTextColor(Color.LTGRAY);
+        tvExpText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        expandedLayout.addView(tvExpText);
+
+        LinearLayout buttonsRow = new LinearLayout(this);
+        buttonsRow.setOrientation(LinearLayout.HORIZONTAL);
+        buttonsRow.setGravity(Gravity.END);
+        buttonsRow.setPadding(0, dpToPx(8), 0, 0);
+
+        btnExpAction = new Button(this);
+        btnExpAction.setText("فتح التطبيق ↗");
+        btnExpAction.setTextColor(Color.WHITE);
+        btnExpAction.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        btnExpAction.setBackground(createCurvedBackground(dpToPx(10), Color.parseColor("#0284C7"), Color.TRANSPARENT));
+        btnExpAction.setOnClickListener(v -> {
             try {
-                windowManager.updateViewLayout(islandContainer, params);
+                Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+                if (launchIntent != null) {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(launchIntent);
+                }
             } catch (Exception ignored) {}
-        }
-    }
+            shrinkIsland();
+        });
+        buttonsRow.addView(btnExpAction);
 
-    private void animateIsland(int fromW, int toW, int fromH, int toH) {
-        ValueAnimator anim = ValueAnimator.ofFloat(0f, 1f);
-        anim.setDuration(240);
-        anim.addUpdateListener(animation -> {
-            float f = animation.getAnimatedFraction();
-            if (params != null) {
-                params.width = (int) (fromW + (toW - fromW) * f);
-                params.height = (int) (fromH + (toH - fromH) * f);
-                try {
-                    windowManager.updateViewLayout(islandContainer, params);
-                } catch (Exception ignored) {}
+        expandedLayout.addView(buttonsRow);
+
+        islandRoot.addView(expandedLayout, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+        // 👈 التفاعل باللمس مثل iOS: النقر لتمديد أو تقليص الجزيرة
+        islandRoot.setOnClickListener(v -> {
+            if (!isExpanded) {
+                expandIsland();
+            } else {
+                shrinkIsland();
             }
         });
-        anim.start();
+    }
+
+    public void popOutIsland(String compactText, String compactIcon, String expTitle, String expText, int durationMs) {
+        tvCompactLeft.setText(compactText);
+        tvCompactRight.setText(compactIcon);
+        tvExpTitle.setText(expTitle);
+        tvExpText.setText(expText);
+
+        expandIsland();
+
+        if (autoShrinkRunnable != null) autoShrinkHandler.removeCallbacks(autoShrinkRunnable);
+        autoShrinkRunnable = this::shrinkIsland;
+        autoShrinkHandler.postDelayed(autoShrinkRunnable, durationMs);
+    }
+
+    private void expandIsland() {
+        if (isExpanded) return;
+        isExpanded = true;
+        compactLayout.setVisibility(View.GONE);
+        expandedLayout.setVisibility(View.VISIBLE);
+
+        animateIslandSize(COMPACT_WIDTH, EXPANDED_WIDTH, COMPACT_HEIGHT, EXPANDED_HEIGHT, 28);
+    }
+
+    private void shrinkIsland() {
+        if (!isExpanded) return;
+        isExpanded = false;
+        expandedLayout.setVisibility(View.GONE);
+        compactLayout.setVisibility(View.VISIBLE);
+
+        animateIslandSize(EXPANDED_WIDTH, COMPACT_WIDTH, EXPANDED_HEIGHT, COMPACT_HEIGHT, 20);
+    }
+
+    private void animateIslandSize(int fromW, int toW, int fromH, int toH, int cornerRadius) {
+        ValueAnimator animW = ValueAnimator.ofInt(dpToPx(fromW), dpToPx(toW));
+        animW.setDuration(320);
+        animW.setInterpolator(new OvershootInterpolator(1.1f));
+        animW.addUpdateListener(animation -> {
+            params.width = (int) animation.getAnimatedValue();
+            windowManager.updateViewLayout(islandRoot, params);
+        });
+
+        ValueAnimator animH = ValueAnimator.ofInt(dpToPx(fromH), dpToPx(toH));
+        animH.setDuration(320);
+        animH.setInterpolator(new OvershootInterpolator(1.1f));
+        animH.addUpdateListener(animation -> {
+            params.height = (int) animation.getAnimatedValue();
+            islandRoot.setBackground(createCurvedBackground(dpToPx(cornerRadius), Color.BLACK, Color.parseColor("#38BDF8")));
+            windowManager.updateViewLayout(islandRoot, params);
+        });
+
+        animW.start();
+        animH.start();
+    }
+
+    private GradientDrawable createCurvedBackground(int radiusPx, int bgColor, int strokeColor) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setCornerRadius(radiusPx);
+        shape.setColor(bgColor);
+        shape.setStroke(dpToPx(1), strokeColor);
+        return shape;
+    }
+
+    private int dpToPx(int dp) {
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        instance = null;
-        try { unregisterReceiver(batteryReceiver); } catch (Exception ignored) {}
-        if (islandContainer != null && windowManager != null) {
-            windowManager.removeView(islandContainer);
-            islandContainer = null;
-        }
+        try {
+            unregisterReceiver(eventReceiver);
+            if (islandRoot != null) windowManager.removeView(islandRoot);
+        } catch (Exception ignored) {}
     }
+
+    @Override
+    public IBinder onBind(Intent intent) { return null; }
 }
