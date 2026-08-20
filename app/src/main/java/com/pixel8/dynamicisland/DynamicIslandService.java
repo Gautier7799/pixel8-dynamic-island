@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
@@ -24,9 +25,9 @@ import android.view.WindowManager;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class DynamicIslandService extends Service {
 
@@ -43,12 +44,13 @@ public class DynamicIslandService extends Service {
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable autoShrinkRunnable;
 
-    // أبعاد الجزيرة حول كاميرا Pixel 8
-    private final int NOTCH_Y = 10;
-    private final int COMPACT_WIDTH = 200;
-    private final int COMPACT_HEIGHT = 40;
-    private final int EXPANDED_WIDTH = 345;
-    private final int EXPANDED_HEIGHT = 135;
+    // الإعدادات القابلة للتخصيص
+    private SharedPreferences prefs;
+    private int compactWidth = 125;  // حجم صغير متناسق مع كاميرا Pixel 8
+    private int compactHeight = 32;
+    private int notchY = 8;
+    private final int EXPANDED_WIDTH = 320;
+    private final int EXPANDED_HEIGHT = 130;
 
     private TextView tvCompactLeft, tvCompactRight;
     private TextView tvExpTitle, tvExpText;
@@ -65,13 +67,18 @@ public class DynamicIslandService extends Service {
                                          status == BatteryManager.BATTERY_STATUS_FULL;
                     int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
                     if (isCharging) {
-                        showIsland("🔋 تم توصيل الشاحن", "جاري الشحن السريع: " + level + "%", "⚡");
+                        showIsland("⚡ الشحن السريع", "نسبة البطارية: " + level + "%", "⚡", 4000);
+                    }
+                } else if ("com.pixel8.dynamicisland.UPDATE_SIZE".equals(action)) {
+                    loadPreferences();
+                    if (!isExpanded) {
+                        updateIslandPositionAndSize(compactWidth, compactHeight, notchY, compactHeight / 2);
                     }
                 } else if ("com.pixel8.dynamicisland.NOTIF".equals(action)) {
                     String title = intent.getStringExtra("title");
                     String text = intent.getStringExtra("text");
                     String icon = intent.getStringExtra("icon");
-                    showIsland(title != null ? title : "إشعار جديد", text != null ? text : "", icon != null ? icon : "💬");
+                    showIsland(title != null ? title : "إشعار جديد", text != null ? text : "", icon != null ? icon : "💬", 5000);
                 }
             } catch (Exception ignored) {}
         }
@@ -81,6 +88,8 @@ public class DynamicIslandService extends Service {
     public void onCreate() {
         super.onCreate();
         instance = this;
+        prefs = getSharedPreferences("island_prefs", MODE_PRIVATE);
+        loadPreferences();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             stopSelf();
@@ -94,10 +103,9 @@ public class DynamicIslandService extends Service {
                     ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                     : WindowManager.LayoutParams.TYPE_PHONE;
 
-            // 👈 السر في استجابة اللمس: FLAG_NOT_TOUCH_MODAL يتيح للجزيرة استقبال اللمسات فوراً
             params = new WindowManager.LayoutParams(
-                    dpToPx(COMPACT_WIDTH),
-                    dpToPx(COMPACT_HEIGHT),
+                    dpToPx(compactWidth),
+                    dpToPx(compactHeight),
                     layoutFlag,
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
                     WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH |
@@ -106,7 +114,7 @@ public class DynamicIslandService extends Service {
                     PixelFormat.TRANSLUCENT
             );
             params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-            params.y = dpToPx(NOTCH_Y);
+            params.y = dpToPx(notchY);
 
             buildIslandViews();
 
@@ -118,6 +126,7 @@ public class DynamicIslandService extends Service {
             IntentFilter filter = new IntentFilter();
             filter.addAction(Intent.ACTION_BATTERY_CHANGED);
             filter.addAction("com.pixel8.dynamicisland.NOTIF");
+            filter.addAction("com.pixel8.dynamicisland.UPDATE_SIZE");
             registerReceiver(eventReceiver, filter);
 
         } catch (Exception e) {
@@ -125,64 +134,70 @@ public class DynamicIslandService extends Service {
         }
     }
 
+    private void loadPreferences() {
+        if (prefs != null) {
+            compactWidth = prefs.getInt("compact_width", 125);
+            compactHeight = prefs.getInt("compact_height", 32);
+            notchY = prefs.getInt("notch_y", 8);
+        }
+    }
+
     private void buildIslandViews() {
         islandRoot = new FrameLayout(this);
-        islandRoot.setBackground(createCurvedBackground(dpToPx(20), Color.BLACK, Color.parseColor("#38BDF8")));
+        islandRoot.setBackground(createCurvedBackground(dpToPx(compactHeight / 2), Color.BLACK, Color.parseColor("#1E293B")));
         islandRoot.setClipToOutline(true);
-        islandRoot.setClickable(true);
-        islandRoot.setFocusable(true);
 
-        // واجهة الكبسولة المضغوطة (Compact)
+        // واجهة الكبسولة المدمجة النحيفة مثل iOS
         compactLayout = new LinearLayout(this);
         compactLayout.setOrientation(LinearLayout.HORIZONTAL);
         compactLayout.setGravity(Gravity.CENTER_VERTICAL);
-        compactLayout.setPadding(dpToPx(14), 0, dpToPx(14), 0);
+        compactLayout.setPadding(dpToPx(10), 0, dpToPx(10), 0);
 
         tvCompactLeft = new TextView(this);
-        tvCompactLeft.setText("الجزيرة التفاعلية 🏝️");
-        tvCompactLeft.setTextColor(Color.WHITE);
+        tvCompactLeft.setText("🏝️");
         tvCompactLeft.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        tvCompactLeft.setTypeface(Typeface.DEFAULT_BOLD);
-        LinearLayout.LayoutParams leftParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
-        compactLayout.addView(tvCompactLeft, leftParams);
+        compactLayout.addView(tvCompactLeft);
 
         tvCompactRight = new TextView(this);
         tvCompactRight.setText("✨");
-        tvCompactRight.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        compactLayout.addView(tvCompactRight);
+        tvCompactRight.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        rightParams.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
+        tvCompactRight.setGravity(Gravity.END);
+        compactLayout.addView(tvCompactRight, rightParams);
 
         islandRoot.addView(compactLayout, new FrameLayout.LayoutParams(-1, -1));
 
-        // واجهة البطاقة المنبثقة المتمددة (Expanded Card)
+        // واجهة البطاقة المنبثقة المتمددة
         expandedLayout = new LinearLayout(this);
         expandedLayout.setOrientation(LinearLayout.VERTICAL);
         expandedLayout.setGravity(Gravity.CENTER_VERTICAL);
-        expandedLayout.setPadding(dpToPx(16), dpToPx(14), dpToPx(16), dpToPx(14));
+        expandedLayout.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
         expandedLayout.setVisibility(View.GONE);
 
         tvExpTitle = new TextView(this);
-        tvExpTitle.setText("الجزيرة التفاعلية");
+        tvExpTitle.setText("Pixel 8 Island");
         tvExpTitle.setTextColor(Color.parseColor("#38BDF8"));
-        tvExpTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        tvExpTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tvExpTitle.setTypeface(Typeface.DEFAULT_BOLD);
         expandedLayout.addView(tvExpTitle);
 
         tvExpText = new TextView(this);
-        tvExpText.setText("انقر لفتح لوحة التحكم والتفاعل مع الأنشطة الحية");
+        tvExpText.setText("تفاعل حي ومباشر مع النظام");
         tvExpText.setTextColor(Color.parseColor("#E2E8F0"));
-        tvExpText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        tvExpText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         expandedLayout.addView(tvExpText);
 
         LinearLayout buttonsRow = new LinearLayout(this);
         buttonsRow.setOrientation(LinearLayout.HORIZONTAL);
         buttonsRow.setGravity(Gravity.END);
-        buttonsRow.setPadding(0, dpToPx(10), 0, 0);
+        buttonsRow.setPadding(0, dpToPx(8), 0, 0);
 
         Button btnAction = new Button(this);
-        btnAction.setText("فتح لوحة التحكم ↗");
+        btnAction.setText("فتح الإعدادات ⚙️");
         btnAction.setTextColor(Color.WHITE);
-        btnAction.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        btnAction.setBackground(createCurvedBackground(dpToPx(10), Color.parseColor("#0284C7"), Color.TRANSPARENT));
+        btnAction.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        btnAction.setBackground(createCurvedBackground(dpToPx(8), Color.parseColor("#0284C7"), Color.TRANSPARENT));
         btnAction.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -201,7 +216,7 @@ public class DynamicIslandService extends Service {
 
         islandRoot.addView(expandedLayout, new FrameLayout.LayoutParams(-1, -1));
 
-        // 👈 معالج اللمس الفعلي والمباشر
+        // معالج اللمس
         islandRoot.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -235,8 +250,8 @@ public class DynamicIslandService extends Service {
             @Override
             public void run() {
                 try {
-                    if (tvCompactLeft != null) tvCompactLeft.setText(title);
-                    if (tvCompactRight != null) tvCompactRight.setText(iconOrType != null ? iconOrType : "🔔");
+                    if (tvCompactLeft != null) tvCompactLeft.setText(iconOrType != null ? iconOrType : "🔔");
+                    if (tvCompactRight != null) tvCompactRight.setText(title);
                     if (tvExpTitle != null) tvExpTitle.setText(title);
                     if (tvExpText != null) tvExpText.setText(text);
 
@@ -260,7 +275,7 @@ public class DynamicIslandService extends Service {
         isExpanded = true;
         compactLayout.setVisibility(View.GONE);
         expandedLayout.setVisibility(View.VISIBLE);
-        animateIslandSize(COMPACT_WIDTH, EXPANDED_WIDTH, COMPACT_HEIGHT, EXPANDED_HEIGHT, 26);
+        animateIslandSize(compactWidth, EXPANDED_WIDTH, compactHeight, EXPANDED_HEIGHT, 22);
     }
 
     private void shrinkIsland() {
@@ -268,14 +283,14 @@ public class DynamicIslandService extends Service {
         isExpanded = false;
         expandedLayout.setVisibility(View.GONE);
         compactLayout.setVisibility(View.VISIBLE);
-        animateIslandSize(EXPANDED_WIDTH, COMPACT_WIDTH, EXPANDED_HEIGHT, COMPACT_HEIGHT, 20);
+        animateIslandSize(EXPANDED_WIDTH, compactWidth, EXPANDED_HEIGHT, compactHeight, compactHeight / 2);
     }
 
     private void animateIslandSize(int fromW, int toW, int fromH, int toH, int cornerRadius) {
         try {
             ValueAnimator animW = ValueAnimator.ofInt(dpToPx(fromW), dpToPx(toW));
-            animW.setDuration(280);
-            animW.setInterpolator(new OvershootInterpolator(1.1f));
+            animW.setDuration(260);
+            animW.setInterpolator(new OvershootInterpolator(1.05f));
             animW.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
@@ -289,15 +304,15 @@ public class DynamicIslandService extends Service {
             });
 
             ValueAnimator animH = ValueAnimator.ofInt(dpToPx(fromH), dpToPx(toH));
-            animH.setDuration(280);
-            animH.setInterpolator(new OvershootInterpolator(1.1f));
+            animH.setDuration(260);
+            animH.setInterpolator(new OvershootInterpolator(1.05f));
             animH.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
                     try {
                         if (isAttached && windowManager != null) {
                             params.height = (Integer) animation.getAnimatedValue();
-                            islandRoot.setBackground(createCurvedBackground(dpToPx(cornerRadius), Color.BLACK, Color.parseColor("#38BDF8")));
+                            islandRoot.setBackground(createCurvedBackground(dpToPx(cornerRadius), Color.BLACK, Color.parseColor("#1E293B")));
                             windowManager.updateViewLayout(islandRoot, params);
                         }
                     } catch (Exception ignored) {}
@@ -306,6 +321,18 @@ public class DynamicIslandService extends Service {
 
             animW.start();
             animH.start();
+        } catch (Exception ignored) {}
+    }
+
+    private void updateIslandPositionAndSize(int w, int h, int y, int radius) {
+        try {
+            if (isAttached && windowManager != null) {
+                params.width = dpToPx(w);
+                params.height = dpToPx(h);
+                params.y = dpToPx(y);
+                islandRoot.setBackground(createCurvedBackground(dpToPx(radius), Color.BLACK, Color.parseColor("#1E293B")));
+                windowManager.updateViewLayout(islandRoot, params);
+            }
         } catch (Exception ignored) {}
     }
 
